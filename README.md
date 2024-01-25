@@ -15,4 +15,6 @@ Run the image and using the defualt ports for jupyter lab (8888) and rsudio (878
 make run
 ```
 
+You should then be able to go to `localhost:8888` and `localhost:8787` in your browser to open up the applications.
+
 If rstudio asks you for a username/password, try: `rstudio` and `pass`.
