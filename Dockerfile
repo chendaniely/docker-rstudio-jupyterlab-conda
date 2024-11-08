@@ -10,6 +10,9 @@ RUN apt-get update && apt-get install -y \
     libcurl4-openssl-dev \
     libssl-dev \
     libxml2-dev \
+    libfontconfig1-dev libharfbuzz-dev libfribidi-dev libtiff5-dev \
+    git \
+    postgresql \
     && apt-get clean
 
 # Create a unified user for Jupyter and RStudio Server
@@ -42,6 +45,7 @@ RUN chmod +x /usr/local/bin/start.sh
 # add rc scripts
 COPY .bash_profile .bash_profile
 COPY .bashrc .bashrc
+COPY .profile .profile
 
 RUN chown -R coder:coder /home/coder/miniforge3
 
