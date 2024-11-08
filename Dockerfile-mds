@@ -1,7 +1,0 @@
-FROM chendaniely/rstudio_lab:latest
-
-COPY mds-python.sh mds-python.sh
-RUN bash mds-python.sh
-
-COPY mds-r.R mds-r.R
-RUN Rscript mds-r.R
