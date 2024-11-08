@@ -1,62 +1,42 @@
-# Use Miniforge3 as the base image
-FROM condaforge/miniforge3
+# Base image for R and RStudio Server
+FROM rocker/verse:latest
 
-# Set environment variable to prevent interactive prompts
-ENV DEBIAN_FRONTEND=noninteractive
-
-# Add CRAN repository
-RUN apt-get update && apt-get install -y --no-install-recommends \
-    software-properties-common \
-    dirmngr gnupg apt-transport-https ca-certificates software-properties-common
-
-RUN apt-key adv --keyserver keyserver.ubuntu.com --recv-keys E298A3A825C0D65DFD57CBB651716619E084DAB9 && \
-    add-apt-repository 'deb https://cloud.r-project.org/bin/linux/ubuntu focal-cran40/' && \
-    apt-get update && \
-    apt-get clean && \
-    rm -rf /var/lib/apt/lists/*
+# Install dependencies and Miniforge3
+RUN apt-get update && apt-get install -y \
+    wget \
+    curl \
+    sudo \
+    bzip2 \
+    libcurl4-openssl-dev \
+    libssl-dev \
+    libxml2-dev \
+    && apt-get clean
 
 
-# Install RStudio Server
-RUN apt-get update && apt-get install -y --no-install-recommends gdebi-core && \
-    wget --no-verbose https://download2.rstudio.org/server/focal/amd64/rstudio-server-2023.12.0-369-amd64.deb && \
-    gdebi -n rstudio-server-2023.12.0-369-amd64.deb && \
-    rm rstudio-server-2023.12.0-369-amd64.deb && \
-    apt-get clean && \
-    rm -rf /var/lib/apt/lists/*
+# Install Miniforge3 for Conda
+RUN wget https://github.com/conda-forge/miniforge/releases/latest/download/Miniforge3-Linux-x86_64.sh -O Miniforge3.sh && \
+    bash Miniforge3.sh -b -p /opt/conda && \
+    rm Miniforge3.sh
 
-# Install R and set timezone to America
-RUN apt-get update && \
-    apt-get install -y --no-install-recommends r-base r-base-dev && \
-    ln -fs /usr/share/zoneinfo/America /etc/localtime && \
-    dpkg-reconfigure --frontend noninteractive tzdata && \
-    apt-get clean && \
-    rm -rf /var/lib/apt/lists/*
+# Update PATH environment variable for Conda
+ENV PATH="/opt/conda/bin:$PATH"
 
-# Install Jupyter Lab
-RUN conda install -y -c conda-forge jupyterlab && \
-    #conda install -y -c conda-forge notebook && \
-    #conda install -y -c conda-forge nb_conda_kernels && \
-    conda clean -afy
+# Install JupyterLab
+RUN conda install -y jupyterlab && \
+    conda clean --all -y
 
-# Create user and its home directory
-RUN useradd -m -s /bin/bash rstudio
+# Create a unified user for Jupyter and RStudio Server
+RUN useradd -m unified_user && echo "unified_user:unified_pass" | chpasswd && adduser unified_user sudo
 
-# Set the working directory to the home directory of the  user
-WORKDIR /home/rstudio
+# Set the working directory to the unified user's home
+WORKDIR /home/unified_user
 
-# Change ownership of the home directory to the user
-RUN chown -R rstudio:rstudio /home/rstudio
-
-# Expose ports for RStudio Server and Jupyter Lab
+# Expose ports for RStudio Server (8787) and JupyterLab (8888)
 EXPOSE 8787 8888
 
-# Change root password
-#RUN echo 'rstudio-server:pass' | chpasswd
-RUN echo 'rstudio:pass' | chpasswd
-RUN echo 'root:pass' | chpasswd
+# Add a script to run both services
+COPY start.sh /usr/local/bin/start.sh
+RUN chmod +x /usr/local/bin/start.sh
 
-#USER rstudio
-
-# Set up default command to run RStudio Server and Jupyter Lab
-#CMD ["bash", "-c", "/usr/lib/rstudio-server/bin/rserver --auth-none=1 --server-daemonize=0  & jupyter lab --ip=0.0.0.0 --allow-root --no-browser --NotebookApp.token='' --NotebookApp.password=''"]
-CMD ["bash", "-c", "/usr/lib/rstudio-server/bin/rserver --server-user=rstudio --server-daemonize=0  & jupyter lab --ip=0.0.0.0 --allow-root --no-browser --NotebookApp.token='' --NotebookApp.password=''"]
+# Start Jupyter Lab and RStudio Server
+CMD ["/usr/local/bin/start.sh"]

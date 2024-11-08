@@ -1,19 +1,12 @@
-@PHONY: build
+.PHONY: build
 build:
-	docker build -t jupyter_rstudio .
+	DOCKER_BUILDKIT=1 docker buildx build .
 
-@PHONY: run
+
+.PHONY: build_clean
+build_clean:
+	DOCKER_BUILDKIT=1 docker buildx build --no-cache .
+
+
+.PHONY: run
 run:
-	docker run -p 8888:8888 -p 8787:8787 -e PASSWORD=pass jupyter_rstudio
-
-@PHONY: it
-it:
-	docker run -it -p 8888:8888 -p 8787:8787 -e PASSWORD=pass jupyter_rstudio /bin/bash
-
-@PHONY: buildrstudio
-buildrstudio:
-	docker build -f rstudio -t rstudio .
-
-@PHONY: runrstudio
-runrstudio:
-	docker run -p 8787:8787 rstudio
